@@ -7,5 +7,6 @@ async fn main() {
 
     let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
     println!("Listening on {}", addr);
+    println!("Swagger UI available at http://127.0.0.1:8080/swagger-ui/");
     axum::serve(tokio::net::TcpListener::bind(addr).await.unwrap(), app).await.unwrap();
 }

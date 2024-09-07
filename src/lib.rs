@@ -64,13 +64,18 @@ pub async fn get_user(State(state): State<Arc<AppState>>, Path(user_id): Path<us
     path = "/users",
     request_body = User,
     responses(
-        (status = 201, description = "User created successfully")
+        (status = 201, description = "User created successfully"),
+        (status = 400, description = "User ID already exists")
     )
 )]
 pub async fn create_user(State(state): State<Arc<AppState>>, Json(new_user): Json<User>) -> impl IntoResponse {
     let mut users = state.users.lock().await;
-    users.push(new_user);
-    StatusCode::CREATED
+    if users.iter().any(|user| user.id == new_user.id) {
+        (StatusCode::BAD_REQUEST, Json(json!({"error": "User ID already exists"})))
+    } else {
+        users.push(new_user);
+        (StatusCode::CREATED, Json(json!({"message": "User created successfully"})))
+    }
 }
 
 #[utoipa::path(
@@ -79,19 +84,30 @@ pub async fn create_user(State(state): State<Arc<AppState>>, Json(new_user): Jso
     request_body = User,
     responses(
         (status = 200, description = "User updated successfully"),
+        (status = 400, description = "New user ID already exists"),
         (status = 404, description = "User not found")
     ),
     params(
         ("user_id" = usize, Path, description = "User ID")
     )
 )]
-pub async fn update_user(State(state): State<Arc<AppState>>, Path(user_id): Path<usize>, Json(updated_user): Json<User>) -> impl IntoResponse {
+pub async fn update_user(
+    State(state): State<Arc<AppState>>,
+    Path(user_id): Path<usize>,
+    Json(updated_user): Json<User>
+) -> impl IntoResponse {
     let mut users = state.users.lock().await;
+
+    // Check if the new ID (if changed) conflicts with any existing user
+    if updated_user.id != user_id && users.iter().any(|u| u.id == updated_user.id) {
+        return (StatusCode::BAD_REQUEST, Json(json!({"error": "New user ID already exists"})));
+    }
+
     if let Some(user) = users.iter_mut().find(|u| u.id == user_id) {
         *user = updated_user;
-        StatusCode::OK
+        (StatusCode::OK, Json(json!({"message": "User updated successfully"})))
     } else {
-        StatusCode::NOT_FOUND
+        (StatusCode::NOT_FOUND, Json(json!({"error": "User not found"})))
     }
 }
 

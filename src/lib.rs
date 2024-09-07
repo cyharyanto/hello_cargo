@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -7,7 +8,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tokio::sync::Mutex as AsyncMutex;
+use tokio::sync::RwLock;
 use serde_json::json;
 use utoipa::OpenApi;
 use utoipa::ToSchema;
@@ -24,7 +25,7 @@ pub struct User {
 }
 
 pub struct AppState {
-    pub users: AsyncMutex<Vec<User>>,
+    pub users: RwLock<HashMap<usize, User>>,
 }
 
 #[utoipa::path(
@@ -35,8 +36,9 @@ pub struct AppState {
     )
 )]
 pub async fn get_users(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let users = state.users.lock().await;
-    (StatusCode::OK, Json(users.clone()))
+    let users = state.users.read().await;
+    let users_vec: Vec<User> = users.values().cloned().collect();
+    (StatusCode::OK, Json(users_vec))
 }
 
 #[utoipa::path(
@@ -51,8 +53,8 @@ pub async fn get_users(State(state): State<Arc<AppState>>) -> impl IntoResponse 
     )
 )]
 pub async fn get_user(State(state): State<Arc<AppState>>, Path(user_id): Path<usize>) -> impl IntoResponse {
-    let users = state.users.lock().await;
-    if let Some(user) = users.iter().find(|&u| u.id == user_id) {
+    let users = state.users.read().await;
+    if let Some(user) = users.get(&user_id) {
         (StatusCode::OK, Json(json!(user)))
     } else {
         (StatusCode::NOT_FOUND, Json(json!({"error": "User not found"})))
@@ -69,11 +71,11 @@ pub async fn get_user(State(state): State<Arc<AppState>>, Path(user_id): Path<us
     )
 )]
 pub async fn create_user(State(state): State<Arc<AppState>>, Json(new_user): Json<User>) -> impl IntoResponse {
-    let mut users = state.users.lock().await;
-    if users.iter().any(|user| user.id == new_user.id) {
+    let mut users = state.users.write().await;
+    if users.contains_key(&new_user.id) {
         (StatusCode::BAD_REQUEST, Json(json!({"error": "User ID already exists"})))
     } else {
-        users.push(new_user);
+        users.insert(new_user.id, new_user);
         (StatusCode::CREATED, Json(json!({"message": "User created successfully"})))
     }
 }
@@ -96,15 +98,15 @@ pub async fn update_user(
     Path(user_id): Path<usize>,
     Json(updated_user): Json<User>
 ) -> impl IntoResponse {
-    let mut users = state.users.lock().await;
+    let mut users = state.users.write().await;
 
-    // Check if the new ID (if changed) conflicts with any existing user
-    if updated_user.id != user_id && users.iter().any(|u| u.id == updated_user.id) {
+    if updated_user.id != user_id && users.contains_key(&updated_user.id) {
         return (StatusCode::BAD_REQUEST, Json(json!({"error": "New user ID already exists"})));
     }
 
-    if let Some(user) = users.iter_mut().find(|u| u.id == user_id) {
-        *user = updated_user;
+    if users.contains_key(&user_id) {
+        users.remove(&user_id);
+        users.insert(updated_user.id, updated_user);
         (StatusCode::OK, Json(json!({"message": "User updated successfully"})))
     } else {
         (StatusCode::NOT_FOUND, Json(json!({"error": "User not found"})))
@@ -123,9 +125,8 @@ pub async fn update_user(
     )
 )]
 pub async fn delete_user(State(state): State<Arc<AppState>>, Path(user_id): Path<usize>) -> impl IntoResponse {
-    let mut users = state.users.lock().await;
-    if users.iter().position(|u| u.id == user_id).is_some() {
-        users.retain(|u| u.id != user_id);
+    let mut users = state.users.write().await;
+    if users.remove(&user_id).is_some() {
         StatusCode::OK
     } else {
         StatusCode::NOT_FOUND
@@ -152,7 +153,7 @@ struct ApiDoc;
 
 pub fn app() -> Router {
     let app_state = Arc::new(AppState {
-        users: AsyncMutex::new(vec![]),
+        users: RwLock::new(HashMap::new()),
     });
 
     Router::new()

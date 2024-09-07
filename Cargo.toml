@@ -3,13 +3,21 @@ name = "hello_cargo"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "hello_cargo"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hello_cargo"
+path = "src/main.rs"
+
 [dependencies]
 axum = "0.7.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }
 http = "1.1.0"
-tower = "0.4.13"
+tower = { version = "0.5.0", features = ["util"] }
 
 [dev-dependencies]
 hyper = "1.4.1"

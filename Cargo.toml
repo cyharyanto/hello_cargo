@@ -24,6 +24,11 @@ utoipa-swagger-ui = { version = "7.1.0", features = ["axum"] }
 config = "0.14.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+async-trait = "0.1.82"
+diesel = { version = "2.1.0", features = ["postgres", "r2d2"] }
+diesel_migrations = "2.1.0"
+r2d2 = "0.8.10"
+ulid = "1.0.0"
 
 [dev-dependencies]
 hyper = "1.4.1"

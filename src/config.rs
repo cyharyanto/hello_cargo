@@ -6,6 +6,7 @@ use serde::Deserialize;
 pub struct AppConfig {
     pub server: ServerConfig,
     pub log: LogConfig,
+    pub database: DatabaseConfig,
 }
 
 #[derive(Debug, Deserialize)]
@@ -17,6 +18,11 @@ pub struct ServerConfig {
 #[derive(Debug, Deserialize)]
 pub struct LogConfig {
     pub level: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DatabaseConfig {
+    pub url: String,
 }
 
 pub fn load_config() -> Result<AppConfig, config::ConfigError> {

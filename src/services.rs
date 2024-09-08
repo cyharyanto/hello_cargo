@@ -14,19 +14,19 @@ impl UserService {
         self.repository.get_all().await
     }
 
-    pub async fn get_user(&self, id: usize) -> Option<User> {
+    pub async fn get_user(&self, id: &str) -> Option<User> {
         self.repository.get(id).await
     }
 
-    pub async fn create_user(&self, user: User) -> Result<(), String> {
+    pub async fn create_user(&self, user: User) -> Result<User, String> {
         self.repository.create(user).await
     }
 
-    pub async fn update_user(&self, id: usize, user: User) -> Result<(), String> {
+    pub async fn update_user(&self, id: &str, user: User) -> Result<(), String> {
         self.repository.update(id, user).await
     }
 
-    pub async fn delete_user(&self, id: usize) -> bool {
+    pub async fn delete_user(&self, id: &str) -> bool {
         self.repository.delete(id).await
     }
 }

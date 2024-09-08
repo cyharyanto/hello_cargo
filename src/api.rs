@@ -1,6 +1,7 @@
-mod models;
-mod repositories;
 mod services;
+pub mod repositories;
+mod models;
+mod schema;
 
 use axum::{
     extract::{Path, State},
@@ -14,8 +15,8 @@ use serde_json::json;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use repositories::UserRepository;
 use services::UserService;
+use crate::repositories::UserRepositoryArc;
 
 // Re-export User for use in tests
 pub use models::User;
@@ -44,11 +45,11 @@ async fn get_users(State(state): State<Arc<AppState>>) -> impl IntoResponse {
         (status = 404, description = "User not found")
     ),
     params(
-        ("user_id" = usize, Path, description = "User ID")
+        ("user_id" = String, Path, description = "User ID")
     )
 )]
-async fn get_user(State(state): State<Arc<AppState>>, Path(user_id): Path<usize>) -> impl IntoResponse {
-    if let Some(user) = state.user_service.get_user(user_id).await {
+async fn get_user(State(state): State<Arc<AppState>>, Path(user_id): Path<String>) -> impl IntoResponse {
+    if let Some(user) = state.user_service.get_user(&user_id).await {
         (StatusCode::OK, Json(json!(user)))
     } else {
         (StatusCode::NOT_FOUND, Json(json!({"error": "User not found"})))
@@ -60,13 +61,13 @@ async fn get_user(State(state): State<Arc<AppState>>, Path(user_id): Path<usize>
     path = "/users",
     request_body = User,
     responses(
-        (status = 201, description = "User created successfully"),
+        (status = 201, description = "User created successfully", body = User),
         (status = 400, description = "User ID already exists")
     )
 )]
 async fn create_user(State(state): State<Arc<AppState>>, Json(new_user): Json<User>) -> impl IntoResponse {
     match state.user_service.create_user(new_user).await {
-        Ok(_) => (StatusCode::CREATED, Json(json!({"message": "User created successfully"}))),
+        Ok(created_user) => (StatusCode::CREATED, Json(json!(created_user))),
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e}))),
     }
 }
@@ -81,15 +82,15 @@ async fn create_user(State(state): State<Arc<AppState>>, Json(new_user): Json<Us
         (status = 404, description = "User not found")
     ),
     params(
-        ("user_id" = usize, Path, description = "User ID")
+        ("user_id" = String, Path, description = "User ID")
     )
 )]
 async fn update_user(
     State(state): State<Arc<AppState>>,
-    Path(user_id): Path<usize>,
+    Path(user_id): Path<String>,
     Json(updated_user): Json<User>
 ) -> impl IntoResponse {
-    match state.user_service.update_user(user_id, updated_user).await {
+    match state.user_service.update_user(&user_id, updated_user).await {
         Ok(_) => (StatusCode::OK, Json(json!({"message": "User updated successfully"}))),
         Err(e) => {
             let status = if e == "User not found" { StatusCode::NOT_FOUND } else { StatusCode::BAD_REQUEST };
@@ -106,11 +107,11 @@ async fn update_user(
         (status = 404, description = "User not found")
     ),
     params(
-        ("user_id" = usize, Path, description = "User ID")
+        ("user_id" = String, Path, description = "User ID")
     )
 )]
-async fn delete_user(State(state): State<Arc<AppState>>, Path(user_id): Path<usize>) -> impl IntoResponse {
-    if state.user_service.delete_user(user_id).await {
+async fn delete_user(State(state): State<Arc<AppState>>, Path(user_id): Path<String>) -> impl IntoResponse {
+    if state.user_service.delete_user(&user_id).await {
         StatusCode::OK
     } else {
         StatusCode::NOT_FOUND
@@ -135,8 +136,7 @@ async fn delete_user(State(state): State<Arc<AppState>>, Path(user_id): Path<usi
 )]
 struct ApiDoc;
 
-pub fn app() -> Router {
-    let user_repository = Arc::new(UserRepository::new());
+pub fn app(user_repository: UserRepositoryArc) -> Router {
     let user_service = Arc::new(UserService::new(user_repository));
     let app_state = Arc::new(AppState { user_service });
 

@@ -20,6 +20,9 @@ http = "1.1.0"
 tower = { version = "0.5.0", features = ["util"] }
 utoipa = { version = "4.2.0", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "7.1.0", features = ["axum"] }
+config = "0.14.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
 hyper = "1.4.1"

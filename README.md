@@ -1,24 +1,22 @@
 # Rust API Playground
 
-A learning environment for building APIs with Rust and Axum.
+A learning project for building APIs with Rust and Axum.
 
 ## Quick Start
 
 1. Install Rust: https://www.rust-lang.org/tools/install
-
 2. Clone and run:
    ```
    git clone https://github.com/yourusername/hello_cargo.git
    cd hello_cargo
    cargo run
    ```
+3. API docs: http://localhost:8080/swagger-ui/
 
-3. Explore API: http://localhost:8080/swagger-ui/
+## Structure
 
-## Project Structure
-
-- `src/lib.rs`: API logic and routes
-- `src/main.rs`: Application entry point
+- `src/api.rs`: API logic and routes
+- `src/main.rs`: Entry point
 - `tests/integration_test.rs`: API tests
 
 ## Commands
@@ -27,20 +25,25 @@ A learning environment for building APIs with Rust and Axum.
 - Test: `cargo test`
 - Run: `cargo run`
 
-## Learning Focus
+## Features
 
-- Rust ownership in web context
-- Axum framework basics
-- CRUD operations
-- Async/await usage
-- API documentation with SwaggerUI
-- Rust testing
+- CRUD operations for users
+- Swagger UI documentation
+- Configuration management
+- Logging
 
-## Next Challenges
+## Learning Goals
 
-- Add database persistence
-- Implement authentication
-- Enhance error handling
+- Rust ownership and borrowing
+- Async programming with Tokio
+- API development with Axum
+- Testing in Rust
+
+## Next Steps
+
+- Database integration
+- Authentication
+- Error handling improvements
 
 ## Resources
 

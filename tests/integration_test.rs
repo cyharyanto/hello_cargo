@@ -4,7 +4,7 @@ use axum::{
 };
 use hello_cargo::{app, User};
 use serde_json::json;
-use tower::ServiceExt; // Changed this line
+use tower::ServiceExt;
 
 #[tokio::test]
 async fn test_get_users() {
